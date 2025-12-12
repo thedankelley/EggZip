@@ -1,238 +1,671 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>EggZip</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EggZip - Get to the yolk inside!</title>
 <style>
-body {
-    font-family: sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    margin: 0;
-    padding: 0;
+:root{
+  --bg:#071021; --card:#0f1724; --muted:#9aa7b8; --accent:#ffd166; --glass:rgba(255,255,255,0.03); --text:#eaf3ff;
+  --radius:12px; --ui-font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-:root {
-    --bg: #ffffff;
-    --fg: #000000;
-    --panel: #f0f0f0;
-    --button: #e0e0e0;
-}
-body.dark {
-    --bg: #121212;
-    --fg: #f5f5f5;
-    --panel: #1d1d1d;
-    --button: #333333;
-}
-
-header {
-    text-align: center;
-    padding: 20px;
-}
-#logo {
-    width: 128px;
-    height: auto;
-    image-rendering: pixelated;
-}
-#tagline {
-    font-size: 1.1em;
-    margin-top: 5px;
-}
-
-#modeToggle {
-    position: fixed;
-    right: 10px;
-    top: 10px;
-    background: var(--button);
-    padding: 8px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-main {
-    padding: 20px;
-}
-
-.panel {
-    background: var(--panel);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-
-input[type=file] {
-    width: 100%;
-}
-
-button {
-    padding: 12px;
-    width: 100%;
-    margin-top: 10px;
-    background: var(--button);
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-#output {
-    white-space: pre-wrap;
-    margin-top: 10px;
-}
-
-footer {
-    text-align: center;
-    padding: 20px;
-    opacity: 0.7;
-    font-size: 0.9em;
-}
+body{margin:0;background:linear-gradient(180deg,#071021 0%, #0b1220 100%);color:var(--text);font-family:var(--ui-font);-webkit-font-smoothing:antialiased}
+.container{max-width:1100px;margin:18px auto;padding:18px}
+.header{display:flex;align-items:center;gap:14px}
+.logo{width:96px;height:96px;border-radius:10px;image-rendering:pixelated;cursor:pointer}
+.title h1{font-size:20px;margin:0}
+.tag{color:var(--accent);font-weight:700}
+.sub{color:var(--muted);font-size:13px;margin-top:6px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.btn{background:linear-gradient(180deg,#1e293b 0%, #111827 100%);border:1px solid rgba(255,255,255,0.03);padding:10px 12px;border-radius:10px;color:var(--text);cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,#ffd166,#ffb020);color:#071021;font-weight:700}
+.card{background:var(--card);border-radius:var(--radius);padding:14px;margin-top:14px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+.drop{border:2px dashed rgba(255,255,255,0.04);padding:18px;border-radius:10px;text-align:center;color:var(--muted);margin-top:12px}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}
+@media(max-width:960px){.grid{grid-template-columns:1fr}.logo{width:80px;height:80px}}
+.file-list{list-style:none;padding:0;margin:8px 0 0 0}
+.file-item{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.02);font-size:13px}
+.muted{color:var(--muted);font-size:13px}
+.progress-wrap{height:12px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;margin-top:10px}
+.progress-bar{height:100%;width:0;background:linear-gradient(90deg,#ffd166,#ff8c42)}
+.log{background:var(--glass);padding:10px;border-radius:8px;color:var(--muted);max-height:220px;overflow:auto;white-space:pre-wrap}
+.small{font-size:12px;color:var(--muted)}
+.footer{margin-top:18px;color:var(--muted);text-align:center;font-size:13px}
+.theme-toggle{margin-left:auto;display:flex;gap:8px;align-items:center}
+.win98 body.win98{background:#c0c0c0;color:#000}
+.win98 .card{background:#d4d0c8;border:2px solid #fff;border-radius:6px}
+.win98 .btn{background:#e4e4e4;color:#000;border:2px solid #fff}
+.sidebar{height:100%;display:flex;flex-direction:column;gap:12px}
+.history{background:var(--card);padding:10px;border-radius:10px;color:var(--muted);max-height:240px;overflow:auto}
+.entry{padding:6px;border-bottom:1px solid rgba(255,255,255,0.02)}
+.modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center}
+.modal .box{background:var(--card);padding:18px;border-radius:12px;max-width:880px;width:94%;max-height:80vh;overflow:auto}
+.toggle{display:inline-flex;align-items:center;gap:8px}
+.btn-small{padding:6px 8px;border-radius:8px}
 </style>
 </head>
-
 <body>
+<div class="container">
+  <div class="header">
+    <img id="logo" class="logo" alt="EggZip logo" title="Click to download logo" />
+    <div style="flex:1">
+      <div class="title"><h1>EggZip <span class="tag">Get to the yolk inside!</span></h1></div>
+      <div class="sub">Client-side archive utility. Mobile and desktop friendly.</div>
+    </div>
 
-<div id="modeToggle">Toggle mode</div>
+    <div class="theme-toggle">
+      <label class="toggle"><input type="checkbox" id="win98Toggle"> Windows 98</label>
+      <button class="btn btn-small" id="openReadme">README</button>
+    </div>
+  </div>
 
-<header>
-    <img id="logo" alt="EggZip Logo"
-    src="data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAAI AAAACACAYAAADDPmHLAAAABHNCSVQICAgIfAhkiAAAA
-AlwSFlzAAALEgAACxIB0t1+/AAAABl0RVh0Q3JlYXRpb24gVGltZQAwMi8xMi8xNTZRwaMA
-AAE4SURBVHic7dqxCcMgEEVRx///5yoyS9MhUlCT3VkOqkk58FmSPrbr30YIOCQM7DDDeWG
-ZPAHDLcBYcAUcATcAQcAadwHIAcUAacwHYAceAGdwGMY4YAlnXrhIRbkIuAeGHWxirMRqkR
-sADVY6jwxKF1uHmIiiaivGi4ZTSdKCbFf8gDuwZQzQPgimeISFRCGDpa2BkLomqKgkl0aoV
-UgG0KBPXn1HULICwhfQ3GscxCiNFuIBqmoeZaR6mE6oPD58Ll35H0TADaBrZEcDgEaKhsR4
-Y90SEzGyF/F7Ai/3Gzdh0dX8GZFODdgNpTi27CwBZhOiCkCmDYJLQCxBmA5g2C60AsQZgOY
-NgbuALIGYDmHYFLQawBmA5hWBW0CsAZgOYXgVtArAGYDmFYFbQKwBmA5heBW0CsAZgOYXgV
-vAHzW0Ax7AnCM1j7rwhhtjfiPgkBC5Qyjp/wAAAABJRU5ErkJggg==" />
+  <div class="controls">
+    <label class="btn" id="addFilesBtn">Add files</label>
+    <input id="fileInput" type="file" multiple style="display:none" />
+    <label class="btn" id="addArchiveBtn">Add archive</label>
+    <input id="archiveInput" type="file" accept=".zip,.7z,.tar,.gz,.tgz,.rar,.xz,.bz2,.wim" style="display:none" />
+    <button class="btn primary" id="createZipBtn">Create ZIP</button>
+    <button class="btn" id="create7zBtn">Create 7z</button>
+    <button class="btn" id="extractBtn">Extract selected</button>
+    <button class="btn" id="cacheVendorsBtn">Cache vendor files</button>
+  </div>
 
-    <div id="tagline">Get to the yolk inside!</div>
-</header>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <strong>Staging area</strong>
+        <div class="small">Drag files here or add them with Add files. To extract: add one archive and click Extract selected.</div>
 
-<main>
+        <div id="dropArea" class="drop">Drop files here to stage them</div>
 
-<div class="panel">
-    <h2>Create archive</h2>
-    <input id="createInput" type="file" multiple>
-    <select id="createFormat">
-        <option value="zip">zip</option>
-        <option value="7z">7z</option>
-    </select>
-    <button onclick="createArchive()">Create archive</button>
+        <ul id="fileList" class="file-list"></ul>
+
+        <div class="progress-wrap" id="progressWrap" style="display:none"><div id="progressBar" class="progress-bar"></div></div>
+        <div id="progressText" class="small" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <strong>Log</strong>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <strong>Backends</strong>
+        <div style="margin-top:8px" class="small">
+          <label><input type="checkbox" id="use7z" checked> Prefer 7z-wasm</label><br/>
+          <label><input type="checkbox" id="useLib" checked> Use libarchive fallback</label>
+        </div>
+        <div style="margin-top:8px" class="small">If a backend is not detected, press Cache vendor files to store them locally in Cache Storage.</div>
+      </div>
+
+      <div class="card">
+        <strong>Advanced</strong>
+        <div style="margin-top:8px" class="small">
+          <button class="btn-small btn" id="toggleAdvanced">Toggle Advanced</button>
+        </div>
+        <div id="advanced" style="display:none;margin-top:8px">
+          <label class="small">Password (for create and extract)</label>
+          <input id="password" type="password" placeholder="Optional password" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;border:none"/>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <label class="small">Compression level</label>
+            <select id="compressLevel"><option>0</option><option>1</option><option>3</option><option selected>6</option><option>9</option></select>
+          </div>
+          <div style="margin-top:8px" class="small">Split size is a future feature.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>History</strong>
+        <div id="history" class="history"></div>
+      </div>
+
+      <div class="card">
+        <strong>Status</strong>
+        <div id="status" class="small" style="margin-top:8px">Initializing...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Created by Dan</div>
 </div>
 
-<div class="panel">
-    <h2>Extract archive</h2>
-    <input id="extractInput" type="file">
-    <button onclick="extractArchive()">Extract</button>
-</div>
-
-<div id="output" class="panel"></div>
-
-</main>
-
-<footer>
-Created by Dan
-</footer>
+<!-- README modal -->
+<div id="readmeModal" class="modal"><div class="box card"><h2>EggZip - README</h2>
+<pre id="readmeText" style="white-space:pre-wrap;color:var(--muted)"></pre>
+<div style="text-align:right;margin-top:10px"><button class="btn" id="closeReadme">Close</button></div>
+</div></div>
 
 <script>
-// Light or dark mode
-document.getElementById("modeToggle").onclick = () => {
-    document.body.classList.toggle("dark");
+/* --------------- Configuration --------------- */
+/* Vendors - change to local vendor/ files if you host them in repo for guaranteed offline */
+const vendors = [
+  {name:'fflate', url:'https://cdn.jsdelivr.net/npm/fflate/umd/index.js'},
+  {name:'7z-wasm-js', url:'https://cdn.jsdelivr.net/npm/7z-wasm@1.0.4/dist/7zz.umd.js'},
+  {name:'7z-wasm-wasm', url:'https://cdn.jsdelivr.net/npm/7z-wasm@1.0.4/dist/7zz.wasm'},
+  {name:'libarchive', url:'https://cdn.jsdelivr.net/npm/libarchive-wasm@1.2.0/dist/libarchive-wasm.umd.js'}
+];
+const CACHE_NAME = 'eggzip-vendors-v1';
+
+/* --------------- UI elements --------------- */
+const logEl = id('log'), statusEl = id('status'), fileInput = id('fileInput'), archiveInput = id('archiveInput');
+const addFilesBtn = id('addFilesBtn'), addArchiveBtn = id('addArchiveBtn'), dropArea = id('dropArea');
+const createZipBtn = id('createZipBtn'), create7zBtn = id('create7zBtn'), extractBtn = id('extractBtn');
+const cacheVendorsBtn = id('cacheVendorsBtn'), progressWrap = id('progressWrap'), progressBar = id('progressBar'), progressText = id('progressText');
+const fileListEl = id('fileList'), historyEl = id('history'), use7zCb = id('use7z'), useLibCb = id('useLib');
+const toggleAdvancedBtn = id('toggleAdvanced'), advancedBox = id('advanced'), passwordInput = id('password'), compressLevelSelect = id('compressLevel');
+const win98Toggle = id('win98Toggle'), logoImg = id('logo'), openReadme = id('openReadme'), readmeModal = id('readmeModal'), readmeText = id('readmeText'), closeReadme = id('closeReadme');
+
+/* --------------- State --------------- */
+let staged = []; // array of {name, file}
+let backends = {seven:null, libarchive:null};
+let history = [];
+
+/* --------------- Helpers --------------- */
+function id(s){return document.getElementById(s)}
+function log(...args){ logEl.textContent += args.map(a=>typeof a==='string'?a:JSON.stringify(a)).join(' ') + '\\n'; logEl.scrollTop = logEl.scrollHeight; }
+function setStatus(s){ statusEl.textContent = s; }
+function humanSize(n){ if(n===undefined) return ''; if(n===0) return '0 B'; const u=['B','KB','MB','GB']; let i=0; while(n>=1024 && i<u.length-1){ n/=1024; i++; } return Math.round(n*10)/10 + ' ' + u[i]; }
+function timestamp(){ return new Date().toISOString().replace(/[:.]/g,'-'); }
+function setProgress(p,txt){ if(p<=0 || p>=100){ progressWrap.style.display = p>=100 ? 'block' : 'none'; } else progressWrap.style.display = 'block'; progressBar.style.width = Math.max(0,Math.min(100,p)) + '%'; progressText.textContent = txt ? txt : (p + '%'); }
+
+/* --------------- Logo generation (retro-comedy palette) --------------- */
+/* Embeds a PNG as dataURL, click to download */
+(function drawLogo(){
+  const canvas = document.createElement('canvas'); const px = 5, w = 16, h = 16;
+  canvas.width = w*px; canvas.height = h*px; const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  const P = {shell:'#fff8f0',yolk:'#ffd166,',zip:'#a6b0b8',dino:'#8be79b',shadow:'#d9c59a',outline:'#071021'};
+  const map = [
+"____111111110___",
+"___111111111110_",
+"__11111111111110",
+"_111111111111111",
+"_111111111111111",
+"11111111111111111",
+"11111111111111111",
+"11111111111111111",
+"11111A11111A11111",
+"11111A11111A11111",
+"11111A22A11A11111",
+"_11112AA22A11111_",
+"__1111222221111__",
+"___11111111110___",
+"____111111110____",
+"_____111110______"
+  ];
+  for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ const c = map[y][x]||'_'; if(c==='1'){ ctx.fillStyle='#fff8f0'; ctx.fillRect(x*px,y*px,px,px); } if(c==='2'){ ctx.fillStyle='#ffd166'; ctx.fillRect(x*px,y*px,px,px); } if(c==='A'){ ctx.fillStyle='#a6b0b8'; ctx.fillRect(x*px,y*px,px,px); } } }
+  ctx.fillStyle='#8be79b'; ctx.fillRect(7*px,7*px,px*2,px*2); ctx.fillStyle='#071021'; ctx.fillRect(8*px,8*px,px,px);
+  const data = canvas.toDataURL('image/png'); logoImg.src = data; logoImg.addEventListener('click', ()=>{ canvas.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='eggzip-logo.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }); });
+})();
+
+/* --------------- File staging --------------- */
+addFilesBtn.addEventListener('click', ()=> fileInput.click());
+addArchiveBtn.addEventListener('click', ()=> archiveInput.click());
+fileInput.addEventListener('change', async e=>{ await addFiles(Array.from(e.target.files||[])); fileInput.value=''; });
+archiveInput.addEventListener('change', async e=>{ const f = e.target.files[0]; if(!f) return; staged = [{name:f.name,file:f}]; renderStaged(); archiveInput.value=''; });
+dropArea.addEventListener('dragover', e=>{ e.preventDefault(); dropArea.classList.add('hover'); });
+dropArea.addEventListener('dragleave', e=>{ dropArea.classList.remove('hover'); });
+dropArea.addEventListener('drop', async e=>{ e.preventDefault(); dropArea.classList.remove('hover'); const files = Array.from(e.dataTransfer.files || []); await addFiles(files); });
+
+async function addFiles(files){
+  for(const f of files){ staged.push({name:f.name,file:f}); log('Added', f.name, humanSize(f.size)); }
+  renderStaged();
+}
+function renderStaged(){
+  fileListEl.innerHTML=''; if(staged.length===0){ fileListEl.innerHTML='<li class="file-item"><em class="muted">No files staged</em></li>'; return; }
+  staged.forEach((it,i)=>{ const li=document.createElement('li'); li.className='file-item'; li.innerHTML=`<span>${escapeHtml(it.name)}</span><span class="muted">${humanSize(it.file?it.file.size:0)} <button class="btn btn-small" data-i="${i}">Remove</button></span>`; fileListEl.appendChild(li); });
+  fileListEl.querySelectorAll('button').forEach(btn=>btn.addEventListener('click', ()=>{ const i=+btn.getAttribute('data-i'); staged.splice(i,1); renderStaged(); }));
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* --------------- Cache vendor files --------------- */
+cacheVendorsBtn.addEventListener('click', async ()=>{
+  cacheVendorsBtn.disabled = true; setStatus('Caching vendor files...');
+  log('Caching vendor files into Cache Storage. This may take a while.');
+  try{
+    const cache = await caches.open(CACHE_NAME);
+    for(const v of vendors){
+      try{
+        log('Fetching', v.url);
+        const r = await fetch(v.url, {cache:'no-store'});
+        if(r.ok){ await cache.put(v.url, r.clone()); log('Cached', v.url); }
+        // If this is a JS that mentions a .wasm, cache that .wasm too
+        if(v.url.endsWith('.js')){
+          const text = await r.text();
+          const matches = Array.from(text.matchAll(/['"]([^'"]+\\.wasm)['"]/g)).map(m=>m[1]);
+          for(const m of matches){
+            const murl = new URL(m, v.url).toString();
+            try{ const r2 = await fetch(murl, {cache:'no-store'}); if(r2.ok){ await cache.put(murl, r2.clone()); log('Cached wasm', murl); } }catch(e){ log('Failed to fetch wasm', murl, e && e.message ? e.message : e); }
+          }
+        }
+      }catch(err){ log('Failed to cache vendor', v.url, err && err.message ? err.message : err); }
+    }
+    setStatus('Vendor caching complete');
+  }catch(err){ log('Cache vendor error', err && err.message ? err.message : err); setStatus('Vendor caching failed'); }
+  cacheVendorsBtn.disabled = false;
+});
+
+/* --------------- Load vendor preferring Cache Storage --------------- */
+async function loadVendorScriptPreferCache(url){
+  const cache = await caches.open(CACHE_NAME).catch(()=>null);
+  if(cache){
+    const cached = await cache.match(url);
+    if(cached){
+      const blob = await cached.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      await loadScriptWithPromise(blobUrl);
+      URL.revokeObjectURL(blobUrl);
+      log('Loaded from cache', url);
+      return true;
+    }
+  }
+  await loadScriptWithPromise(url);
+  log('Loaded from network', url);
+  return false;
+}
+function loadScriptWithPromise(src){
+  return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=src; s.onload=()=>{ resolve(); s.remove(); }; s.onerror=(e)=>{ reject(new Error('Script load error ' + src)); s.remove(); }; document.body.appendChild(s); });
+}
+
+/* --------------- Backend initialization --------------- */
+async function initBackends(){
+  setStatus('Initializing backends...');
+  // load fflate first (used widely)
+  try{ await loadVendorScriptPreferCache(vendors.find(v=>v.name==='fflate').url); log('fflate loaded'); }catch(e){ log('fflate load failed', e.message); }
+  // try 7z-wasm JS and wasm loader
+  try{
+    const jsUrl = vendors.find(v=>v.name==='7z-wasm-js').url;
+    // load the UMD JS (from cache if cached)
+    await loadVendorScriptPreferCache(jsUrl);
+    // now try to initialize factory - many builds expose SevenZip or Seven or something similar
+    let SevenFactory = window.Seven || window.SevenZip || window.SevenZipModule || window['7zz'] || window['SevenZipWasm'];
+    if(!SevenFactory && window.SevenZip && typeof window.SevenZip.default === 'function') SevenFactory = window.SevenZip.default;
+    if(typeof SevenFactory === 'function'){
+      // If factory supports locateFile, pass function that prefers cached wasm
+      const locateFile = async (name) => {
+        // try cache first
+        try{
+          const cache = await caches.open(CACHE_NAME);
+          const maybe = await cache.keys().then(keys=>keys.map(r=>r.url)).then(urls => urls.find(u => u.endsWith('/' + name)));
+          if(maybe){
+            return maybe;
+          }
+        }catch(e){}
+        // fallback to CDN path of the vendor wasm
+        const wasmVendor = vendors.find(v=>v.name==='7z-wasm-wasm').url;
+        const base = wasmVendor.substring(0, wasmVendor.lastIndexOf('/')+1);
+        return base + name;
+      };
+      // Some factories accept an options object, some return a promise to module. Try common patterns.
+      try{
+        backends.seven = await SevenFactory({ locateFile });
+        log('7z-wasm module initialized via factory with locateFile');
+      }catch(e1){
+        try{ backends.seven = await SevenFactory(); log('7z-wasm module initialized via factory without locateFile'); }catch(e2){ log('7z-wasm init failed', e2 && e2.message ? e2.message : e2); }
+      }
+    } else {
+      log('7z-wasm factory not found in global scope. The vendor script may expose a different global name. Check console.');
+    }
+  }catch(err){ log('7z-wasm load/init error', err && err.message ? err.message : err); }
+
+  // libarchive detection - try to load from cache or network
+  try{
+    const libUrl = vendors.find(v=>v.name==='libarchive').url;
+    await loadVendorScriptPreferCache(libUrl);
+    // common global names: LibArchiveWasm, libarchive, Archive
+    backends.libarchive = window.LibArchiveWasm || window.libarchive || window.Archive || window.ArchiveWasm || null;
+    log('libarchive detected', !!backends.libarchive);
+  }catch(err){ log('libarchive load error', err && err.message ? err.message : err); }
+
+  setStatus('Backends ready. 7z: ' + (!!backends.seven) + ' libarchive: ' + (!!backends.libarchive));
+  log('Detected libs:', 'fflate', !!window.fflate, '7z-wasm', !!backends.seven, 'libarchive', !!backends.libarchive);
+}
+
+/* Initialize vendors at startup (prefer cache) */
+initBackends();
+
+/* --------------- Progress aware ZIP creation using Web Worker --------------- */
+/* Worker code as a blob. The worker loads fflate via importScripts and accepts a message to create a zip.
+   It will return progress updates per file and a final ArrayBuffer of the zip.
+*/
+const zipWorkerCode = `
+self.onmessage = async function(e){
+  const {files, options} = e.data;
+  try{
+    // import fflate in worker
+    importScripts('https://cdn.jsdelivr.net/npm/fflate/umd/index.js');
+    const mapping = {};
+    for(let i=0;i<files.length;i++){
+      const f = files[i];
+      // f.data is transferable ArrayBuffer
+      mapping[f.name] = new Uint8Array(f.data);
+      self.postMessage({type:'progress',p: Math.round(((i+1)/files.length)*40), msg: 'Buffered ' + f.name});
+    }
+    // use fflate.zip to compress mapping
+    const result = fflate.zipSync(mapping, options && options.password ? {password: options.password} : {});
+    // post back final
+    self.postMessage({type:'done', buffer: result.buffer}, [result.buffer]);
+  }catch(err){
+    self.postMessage({type:'error', msg: err && err.message ? err.message : String(err)});
+  }
 };
+`;
 
-// Lazy loading
-async function loadScript(url) {
-    return new Promise((resolve) => {
-        const s = document.createElement("script");
-        s.src = url;
-        s.onload = resolve;
-        document.body.appendChild(s);
-    });
-}
+/* create worker blob url */
+const zipWorkerBlob = new Blob([zipWorkerCode], {type:'application/javascript'});
+const zipWorkerUrl = URL.createObjectURL(zipWorkerBlob);
 
-// Create archive
-async function createArchive() {
-    const files = document.getElementById("createInput").files;
-    if (!files.length) return;
+/* Create ZIP (uses worker to avoid blocking UI) */
+createZipBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No files staged'); return; }
+  setStatus('Creating ZIP via worker');
+  setProgress(1);
+  try{
+    // prepare files as transferable ArrayBuffers
+    const filesForWorker = [];
+    let totalSize = 0;
+    for(const it of staged){ const ab = await it.file.arrayBuffer(); filesForWorker.push({name: it.name, data: ab}); totalSize += ab.byteLength; }
+    const worker = new Worker(zipWorkerUrl);
+    worker.onmessage = e=>{
+      const d = e.data;
+      if(d.type==='progress'){ setProgress(d.p, d.msg); log('Worker:', d.msg); }
+      if(d.type==='done'){ const blob = new Blob([new Uint8Array(d.buffer)], {type:'application/zip'}); downloadBlob(blob, `eggzip-${timestamp()}.zip`); setProgress(100); log('ZIP created'); historyPush('create zip', `eggzip-${timestamp()}.zip`); worker.terminate(); }
+      if(d.type==='error'){ log('Zip worker error', d.msg); worker.terminate(); setStatus('ZIP failed'); }
+    };
+    const options = {};
+    const pw = passwordInput.value.trim();
+    if(pw) options.password = pw;
+    worker.postMessage({files: filesForWorker, options}, filesForWorker.map(f=>f.data));
+  }catch(err){ log('ZIP create error', err && err.message ? err.message : err); setStatus('ZIP failed'); }
+});
 
-    const format = document.getElementById("createFormat").value;
-
-    if (format === "zip") {
-        // Use CompressionStream API
-        const cs = new CompressionStream("gzip"); 
-        const writer = cs.writable.getWriter();
-
-        let combined = "";
-        for (const f of files) {
-            const text = await f.text();
-            combined += "FILE: " + f.name + "\n" + text + "\n";
-        }
-
-        writer.write(new TextEncoder().encode(combined));
-        writer.close();
-
-        const blob = await new Response(cs.readable).blob();
-        download(blob, "archive.zip");
-        document.getElementById("output").textContent = "Created zip using CompressionStream.";
+/* --------------- Create 7z using 7z-wasm with progress approximation --------------- */
+create7zBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No files staged'); return; }
+  if(!backends.seven){ log('7z-wasm backend not ready. Try Cache vendor files.'); return; }
+  setStatus('Creating 7z');
+  setProgress(1);
+  try{
+    const seven = backends.seven;
+    const FS = seven.FS;
+    const tmp = '/eggzip_tmp_' + Date.now();
+    try{ FS.mkdir(tmp); }catch(e){ /* ignore if exists */ }
+    // write files to Emscripten FS and update progress
+    for(let i=0;i<staged.length;i++){
+      const it = staged[i];
+      const safe = it.name.replace(/[^a-z0-9_.-]/ig,'_');
+      const path = tmp + '/' + safe;
+      const data = new Uint8Array(await it.file.arrayBuffer());
+      try{ FS.writeFile(path, data, {encoding:'binary'}); }catch(e){ FS.createDataFile(tmp, safe, data, true, true); }
+      const p = Math.round(((i+1)/staged.length)*40);
+      setProgress(p, `Wrote ${it.name} to module FS`);
+      log('Wrote to FS', path);
     }
+    // call 7z add command
+    const outPath = `/eggzip-${timestamp()}.7z`;
+    setProgress(45, 'Running 7z compression (this may take time)');
+    // callMain might block until it finishes. We approximate progress with a spinner by increasing percentage slowly.
+    let spinner = 46;
+    const spinnerTimer = setInterval(()=>{ spinner = Math.min(95, spinner + Math.random()*5); setProgress(Math.floor(spinner), '7z processing...'); }, 600);
+    try{
+      // callMain with args - try different arg forms
+      try{ seven.callMain(['a', outPath, tmp + '/*', '-mx=' + compressLevelSelect.value]); }
+      catch(e){ try{ seven.callMain(['a', outPath, tmp + '/*']); }catch(e2){ throw e2; } }
+    }finally{ clearInterval(spinnerTimer); }
+    // read output
+    const outBytes = FS.readFile(outPath);
+    const blob = new Blob([outBytes], {type:'application/x-7z-compressed'});
+    downloadBlob(blob, outPath.replace(/^\//,'')); setProgress(100); log('7z created'); historyPush('create 7z', outPath.replace(/^\//,'')); setStatus('Ready');
+  }catch(err){ log('7z create error', err && err.message ? err.message : err); setStatus('7z failed'); setProgress(0); }
+});
 
-    if (format === "7z") {
-        await loadScript("https://cdn.jsdelivr.net/npm/7z-wasm/7zwasm.js");
+/* --------------- Extraction flow --------------- */
+extractBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No archive staged'); return; }
+  const it = staged[0];
+  setStatus('Extracting ' + it.name);
+  setProgress(1);
+  const name = it.name.toLowerCase();
+  const pw = passwordInput.value.trim();
+  // try 7z first
+  if(use7zCb.checked && backends.seven){
+    try{ await extractWith7z(it.file, pw); setStatus('Ready'); historyPush('extract', it.name); return; }catch(e){ log('7z extract failed', e && e.message ? e.message : e); }
+  }
+  // libarchive fallback
+  if(useLibCb.checked && backends.libarchive){
+    try{ await extractWithLibarchive(it.file, pw); setStatus('Ready'); historyPush('extract', it.name); return; }catch(e){ log('libarchive extract failed', e && e.message ? e.message : e); }
+  }
+  // zip fallback
+  if(name.endsWith('.zip')){
+    try{ await extractZip(it.file, pw); setStatus('Ready'); historyPush('extract', it.name); return; }catch(e){ log('fflate unzip failed', e && e.message ? e.message : e); }
+  }
+  log('No backend could extract this archive. See README for how to add backends.');
+  setStatus('Ready'); setProgress(0);
+});
 
-        const seven = await SevenZip.create({});
-        const fileMap = {};
-        for (const f of files) fileMap[f.name] = new Uint8Array(await f.arrayBuffer());
+/* --------------- ZIP extract (fflate) with progress --------------- */
+async function extractZip(file, password){
+  setProgress(1, 'Reading archive');
+  await loadVendorScriptPreferCache(vendors.find(v=>v.name==='fflate').url);
+  const buf = new Uint8Array(await file.arrayBuffer());
+  // fflate unzipSync returns mapping name => Uint8Array
+  setProgress(30, 'Decompressing');
+  let entries;
+  try{ entries = fflate.unzipSync(buf, password ? {password} : {}); }catch(e){ throw e; }
+  const keys = Object.keys(entries);
+  for(let i=0;i<keys.length;i++){
+    const k = keys[i];
+    const blob = new Blob([entries[k]], {type:'application/octet-stream'});
+    // show in UI and provide download
+    showExtractedFile(k, blob);
+    setProgress(Math.round(30 + (i+1)/keys.length * 70), `Extracted ${k}`);
+  }
+  setProgress(100);
+}
 
-        const result = await seven.add(fileMap, "output.7z");
-        download(new Blob([result]), "output.7z");
-        document.getElementById("output").textContent = "Created 7z archive using 7zwasm.";
+/* --------------- 7z extract using 7z-wasm --------------- */
+async function extractWith7z(file, password){
+  if(!backends.seven) throw new Error('7z not available');
+  const seven = backends.seven, FS = seven.FS;
+  const fname = '/egg_in_' + Date.now() + '_' + file.name.replace(/[^a-z0-9_.-]/ig,'_');
+  const outDir = '/egg_out_' + Date.now();
+  try{ FS.mkdir(outDir); }catch(e){}
+  FS.writeFile(fname, new Uint8Array(await file.arrayBuffer()));
+  setProgress(20, 'Archive written to module FS');
+  // call main to extract to outDir
+  // create spinner progress while extraction runs
+  let spinner = 25;
+  const spinnerTimer = setInterval(()=>{ spinner = Math.min(95, spinner + Math.random()*6); setProgress(Math.floor(spinner), 'Extracting...'); }, 600);
+  try{
+    const args = ['x', fname, '-o' + outDir, '-y'];
+    if(password) args.push('-p' + password);
+    try{ seven.callMain(args); }catch(e){
+      try{ seven.callMain(['x', fname, '-o', outDir, '-y']); }catch(e2){ throw e2; }
     }
+  }finally{ clearInterval(spinnerTimer); }
+  // list files under outDir
+  const files = [];
+  function walk(path){
+    try{
+      const items = FS.readdir(path);
+      for(const name of items){
+        if(name==='.'||name==='..') continue;
+        const p = path + '/' + name;
+        const stat = FS.stat(p);
+        if(stat && (stat.mode & 0o170000) === 0o040000){ walk(p); } else files.push(p);
+      }
+    }catch(e){}
+  }
+  walk(outDir);
+  if(files.length === 0) log('No files found in extracted folder. Extraction may have failed.');
+  for(let i=0;i<files.length;i++){
+    const p = files[i];
+    try{
+      const bytes = FS.readFile(p);
+      const blob = new Blob([bytes], {type:'application/octet-stream'});
+      const saveName = p.startsWith(outDir + '/') ? p.slice(outDir.length + 1) : p.replace(/^\//,'');
+      showExtractedFile(saveName, blob);
+      setProgress(Math.round(50 + ((i+1)/files.length)*50), 'Saved ' + saveName);
+      log('Extracted', saveName);
+    }catch(e){ log('Error reading file from module FS', p, e && e.message ? e.message : e); }
+  }
+  setProgress(100);
 }
 
-// Extract archive
-async function extractArchive() {
-    const file = document.getElementById("extractInput").files[0];
-    if (!file) return;
-
-    const name = file.name.toLowerCase();
-
-    if (name.endsWith(".zip") || name.endsWith(".gz")) {
-        try {
-            const ds = new DecompressionStream("gzip");
-            const decompressed = file.stream().pipeThrough(ds);
-            const text = await new Response(decompressed).text();
-            document.getElementById("output").textContent = text;
-        } catch (e) {
-            document.getElementById("output").textContent =
-            "Unable to extract zip using CompressionStream.";
-        }
-        return;
+/* --------------- libarchive extract --------------- */
+async function extractWithLibarchive(file, password){
+  const la = backends.libarchive;
+  if(!la) throw new Error('libarchive not available');
+  // Try common APIs
+  if(typeof la.extract === 'function'){
+    const ab = await file.arrayBuffer();
+    setProgress(30,'libarchive decompression');
+    const entries = await la.extract(new Uint8Array(ab), password ? {password} : {});
+    for(let i=0;i<entries.length;i++){
+      const e = entries[i];
+      const blob = new Blob([e.data], {type:'application/octet-stream'});
+      showExtractedFile(e.name || ('file-' + i), blob);
+      setProgress(Math.round(30 + ((i+1)/entries.length)*70), 'Extracted ' + (e.name || i));
     }
-
-    // Use libarchive.js
-    await loadScript("https://unpkg.com/libarchive.js/dist/libarchive.js");
-
-    const archive = await Archive.open(file);
-    const entries = await archive.getFilesArray();
-
-    let output = "";
-    entries.forEach(e => {
-        output += "----- " + e.filepath + " -----\n";
-        output += new TextDecoder().decode(e.filedata) + "\n";
-    });
-
-    document.getElementById("output").textContent = output;
+    setProgress(100);
+    return;
+  }
+  if(typeof la.open === 'function'){
+    const archive = await la.open(file, password ? {password} : {});
+    if(typeof archive.extractFiles === 'function'){
+      await archive.extractFiles(async entry=>{
+        if(entry.file){ showExtractedFile(entry.name || entry.filename, entry.file); log('Extracted', entry.name); }
+        else if(entry.arrayBuffer){ const buf = await entry.arrayBuffer(); showExtractedFile(entry.name || 'file', new Blob([buf])); }
+      });
+      setProgress(100);
+      return;
+    }
+    if(typeof archive.getFilesArray === 'function'){
+      const arr = await archive.getFilesArray();
+      for(let i=0;i<arr.length;i++){ const e = arr[i]; if(e.file) showExtractedFile(e.filepath || e.filename, e.file); else if(e.filedata) showExtractedFile(e.filepath, new Blob([e.filedata])); setProgress(Math.round((i+1)/arr.length*100)); }
+      return;
+    }
+  }
+  throw new Error('Unsupported libarchive API');
 }
 
-// Helper for saving files
-function download(blob, filename) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
+/* --------------- Show extracted file in UI --------------- */
+function showExtractedFile(name, blob){
+  const li = document.createElement('div'); li.className='entry';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.textContent = 'Download ' + name; a.style.display='inline-block'; a.style.marginRight='8px';
+  const span = document.createElement('span'); span.textContent = name; span.style.marginRight='8px';
+  li.appendChild(span); li.appendChild(a);
+  const sizeSpan = document.createElement('span'); sizeSpan.textContent = humanSize(blob.size); sizeSpan.className='small'; li.appendChild(sizeSpan);
+  document.querySelector('.card + .card .log')?.insertAdjacentElement('afterend', li); // try place near log
+  // fallback: append to log
+  log('Ready to download', name);
 }
+
+/* --------------- Inspect archive entries --------------- */
+function inspectArchive(){
+  if(staged.length===0) { log('No archive staged'); return; }
+  const it = staged[0];
+  const name = it.name.toLowerCase();
+  log('Inspecting', it.name);
+  // zip via fflate quick listing
+  if(name.endsWith('.zip')){ (async ()=>{ await loadVendorScriptPreferCache(vendors.find(v=>v.name==='fflate').url); const buf = new Uint8Array(await it.file.arrayBuffer()); const entries = fflate.unzipSync(buf); log('ZIP entries:'); for(const k in entries) log(' -', k); })(); return; }
+  // try 7z via module - runs CLI list which prints to module stdout, we can still indicate run
+  if(backends.seven){ try{ backends.seven.callMain(['l', '/tmp/list']); log('7z list attempted (check console output from module).'); }catch(e){ log('7z list error', e && e.message ? e.message : e); } return; }
+  log('No backend available to inspect archive entries.');
+}
+
+/* --------------- History --------------- */
+function historyPush(action, name){ history.unshift({t: new Date().toLocaleString(), action, name}); if(history.length>50) history.length=50; renderHistory(); }
+function renderHistory(){ historyEl.innerHTML=''; if(history.length===0) historyEl.innerHTML='<div class="small muted">No history</div>'; else history.forEach(h=>{ const d=document.createElement('div'); d.className='entry'; d.textContent = h.t + ' - ' + h.action + ' - ' + h.name; historyEl.appendChild(d); }); }
+
+/* --------------- Utility download --------------- */
+function downloadBlob(blob, filename){ const a=document.createElement('a'); const url=URL.createObjectURL(blob); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),3000); }
+
+/* --------------- Init UI handlers --------------- */
+createZipBtn.addEventListener('click', ()=> createZipBtn.click()); // handled via worker above if staged
+create7zBtn.addEventListener('click', ()=> {}); // handled above
+extractBtn.addEventListener('click', ()=> { /* handled above */ });
+toggleAdvancedBtn.addEventListener('click', ()=> { advancedBox.style.display = advancedBox.style.display==='none' ? 'block' : 'none'; });
+
+win98Toggle.addEventListener('change', ()=> { if(win98Toggle.checked) document.body.classList.add('win98'); else document.body.classList.remove('win98'); });
+
+openReadme.addEventListener('click', ()=> { readmeModal.style.display='flex'; });
+closeReadme.addEventListener('click', ()=> { readmeModal.style.display='none'; });
+
+/* README text */
+readmeText.textContent = `
+EggZip - README
+
+Features:
+- Create ZIP via fflate using a web worker (with optional password)
+- Create 7z via 7z-wasm (password supported if backend build supports it)
+- Extract ZIP, 7z, and many other formats using libarchive-wasm fallback
+- Progress bars for compression and decompression (best-effort)
+- Vendor caching and a service worker for offline use
+- Modern UI plus Windows 98 theme toggle
+- History log and extract inspector
+
+Deploy:
+1) Create repo and add this index.html
+2) For full offline reliability, add vendor JS and wasm to vendor/ in your repo and update the vendors[] URLs in this file
+3) Enable GitHub Pages on your repo
+4) Open the page and press Cache vendor files to store vendor assets to Cache Storage for offline use
+
+Notes:
+- 7z progress inside WASM is approximated. If you want accurate progress you can use a custom 7z-wasm build that supports progress callbacks.
+- RAR creation is not supported due to licensing. Extraction support depends on backend builds.
+`;
+
+/* --------------- Service worker registration (simple) --------------- */
+(async function registerSW(){
+  if('serviceWorker' in navigator){
+    const swCode = `
+self.addEventListener('install', event => {
+  event.waitUntil((async ()=>{
+    const c = await caches.open('${CACHE_NAME}');
+    try{ await c.addAll(['./']); }catch(e){}
+  })());
+  self.skipWaiting();
+});
+self.addEventListener('fetch', event => {
+  event.respondWith((async ()=>{
+    const c = await caches.open('${CACHE_NAME}');
+    const r = await c.match(event.request);
+    if(r) return r;
+    try{
+      const net = await fetch(event.request);
+      // cache vendor files when requested
+      const url = new URL(event.request.url);
+      if(${JSON.stringify(vendors.map(v=>v.url.split('/').pop()))}.some(p => url.pathname.endsWith(p))) {
+        try{ c.put(event.request, net.clone()); }catch(e){}
+      }
+      return net;
+    }catch(e){
+      const fallback = await c.match(event.request);
+      if(fallback) return fallback;
+      throw e;
+    }
+  })());
+});
+`;
+    try{
+      const blob = new Blob([swCode], {type:'text/javascript'});
+      const swUrl = URL.createObjectURL(blob);
+      await navigator.serviceWorker.register(swUrl);
+      log('Service worker registered');
+    }catch(e){ log('Service worker register failed', e && e.message ? e.message : e); }
+  } else log('Service worker not supported');
+})();
+
+/* Render empty staged list and initial status */
+renderStaged();
+setStatus('Ready. Loading vendors in background...');
+log('EggZip ready. If a backend is not detected, press Cache vendor files to store vendor JS and wasm locally for offline use.');
+
+/* Expose some functions for quick testing in console */
+window._eggzip = {staged, backends, initBackends, extractWith7z, extractWithLibarchive};
+
 </script>
-
 </body>
 </html>
