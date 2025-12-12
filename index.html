@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EggZip - Get to the yolk inside!</title>
+<style>
+  :root{
+    --bg:#081024; --card:#0f1624; --muted:#9aa7b8; --accent:#ffd166;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071021 0%, #081024 100%);color:#eaf3ff}
+  .wrap{max-width:980px;margin:24px auto;padding:18px}
+  header{display:flex;gap:18px;align-items:center}
+  img#logo{width:96px;height:96px,image-rendering:pixelated;border-radius:10px;background:transparent}
+  h1{font-size:20px;margin:0}
+  .tag{color:var(--accent);font-weight:700}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px}
+  .card{background:var(--card);border-radius:12px;padding:14px;margin-top:18px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  input[type=file]{display:none}
+  .btn{background:linear-gradient(180deg,#1f2a3a 0%, #111827 100%);border:1px solid rgba(255,255,255,0.03);padding:10px 14px;border-radius:10px;color:#e6f0ff;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,#ffd166,#ffb020);color:#071021;font-weight:700}
+  .drop{border:2px dashed rgba(255,255,255,0.04);padding:18px;border-radius:10px;text-align:center;color:var(--muted)}
+  ul.files{list-style:none;padding:0;margin:0}
+  li.file{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.02);font-size:13px}
+  .muted{color:var(--muted);font-size:13px}
+  footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+  .note{font-size:12px;color:var(--muted);margin-top:8px}
+  .small{font-size:12px;color:var(--muted)}
+  .progress{height:8px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden;margin-top:8px}
+  .bar{height:100%;width:0;background:linear-gradient(90deg, #ffd166, #ff8c42)}
+  pre#log{white-space:pre-wrap;word-break:break-word}
+  @media (max-width:640px){
+    header{gap:12px}
+    img#logo{width:80px;height:80px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img id="logo" alt="EggZip logo (SNES style)" title="EggZip logo (click to download)" />
+    <div>
+      <h1>EggZip <span class="tag">Get to the yolk inside!</span></h1>
+      <div class="sub">A client-side archive utility. Create and extract archives in your browser.</div>
+    </div>
+  </header>
+
+  <div class="card" id="main">
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div>
+        <label class="btn" id="addFilesBtn">Add files</label>
+        <input id="fileInput" type="file" multiple />
+        <label class="btn" id="addArchiveBtn">Add archive to open</label>
+        <input id="archiveInput" type="file" accept=".zip,.7z,.tar,.gz,.tgz,.rar,.xz,.bz2,.wim" />
+      </div>
+      <div class="small muted">Runs entirely client-side. For offline deploy, save vendor files in repo. See README inside page.</div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn primary" id="createZip">Create ZIP</button>
+      <button class="btn" id="create7z">Create 7z</button>
+      <button class="btn" id="extractArchive">Extract Selected Archive</button>
+      <button class="btn" id="inspectArchive">Inspect Archive</button>
+    </div>
+
+    <div style="margin-top:12px" class="drop" id="dropArea">Drop files here to stage them</div>
+
+    <div class="card" style="margin-top:12px">
+      <strong>Staging area</strong>
+      <div class="muted">Files you add will be packaged into an archive when you click Create ZIP or Create 7z. For extraction, add one archive file and click Extract Selected Archive.</div>
+      <ul class="files" id="fileList"></ul>
+      <div class="progress" id="progressWrap" style="display:none"><div class="bar" id="progressBar"></div></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <strong>Log</strong>
+      <pre id="log" style="max-height:220px;overflow:auto;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;color:var(--muted)"></pre>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <strong>Settings</strong>
+      <div class="small muted">Toggle optional backends. If you include local WASM files in repo, enable them to run offline.</div>
+      <label><input type="checkbox" id="use7z" checked> Prefer 7z-wasm backend when available</label><br/>
+      <label><input type="checkbox" id="useLibarchive" checked> Prefer libarchive backend as fallback</label>
+      <div class="note">The page loads remote WASM/JS from CDNs. See README below for how to host these files locally in your repo for offline use.</div>
+    </div>
+  </div>
+
+  <footer>Created by Dan</footer>
+</div>
+
+<!-- Libraries from CDNs. For offline deploy, download these files into your repo and adjust paths. -->
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<!-- 7z-wasm (UMD) -->
+<script src="https://cdn.jsdelivr.net/npm/7z-wasm@1.2.0/bin/7zz.umd.js"></script>
+<!-- libarchive-wasm if available -->
+<script src="https://cdn.jsdelivr.net/npm/libarchive-wasm@1.2.0/dist/libarchive-wasm.umd.js"></script>
+
+<script>
+/*
+EggZip - single-file combined app
+- ZIP via fflate
+- 7z via 7z-wasm (if present)
+- libarchive via libarchive-wasm or libarchivejs (if present)
+- Logo is generated as pixel art and exported as a PNG data url. Click to download.
+- No em dash characters in this code.
+*/
+
+/* Simple logging */
+const logEl = id('log');
+function id(n){return document.getElementById(n)}
+function log(...args){ logEl.textContent += args.map(a=>String(a)).join(' ') + '\\n'; logEl.scrollTop = logEl.scrollHeight; }
+log('EggZip starting...');
+
+/* UI elements */
+const fileInput = id('fileInput'), archiveInput = id('archiveInput');
+const addFilesBtn = id('addFilesBtn'), addArchiveBtn = id('addArchiveBtn');
+const createZipBtn = id('createZip'), create7zBtn = id('create7z'), extractBtn = id('extractArchive');
+const inspectBtn = id('inspectArchive');
+const fileListEl = id('fileList'), dropArea = id('dropArea');
+const progressWrap = id('progressWrap'), progressBar = id('progressBar');
+const logoImg = id('logo');
+const use7zToggle = id('use7z'), useLibToggle = id('useLibarchive');
+
+let staged = []; // {name, file}
+function humanSize(n){
+  if(!n) return '0 B';
+  const units=['B','KB','MB','GB'];
+  let i=0;
+  while(n>=1024 && i<units.length-1){ n/=1024; i++; }
+  return Math.round(n*10)/10 + ' ' + units[i];
+}
+
+/* Pixel art logo generation. We draw to a temp canvas then export to a PNG data url.
+   This produces an actual PNG file embedded in the page as data url.
+*/
+(function makeLogo(){
+  const canvas = document.createElement('canvas');
+  const pixelSize = 4;
+  const pw = 16, ph = 16;
+  canvas.width = pw * pixelSize;
+  canvas.height = ph * pixelSize;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  // palette
+  const P = {transparent:'rgba(0,0,0,0)', shell:'#f4f4f4', outline:'#071021', yolk:'#ffd166', zipper:'#9ea7b0', dino:'#4fc18a'};
+
+  // a simple 16x16 pixel map for an egg with zipper and dino inside
+  const map = [
+    "____111111110___",
+    "___111111111110_",
+    "__11111111111110",
+    "_111111111111111",
+    "_111111111111111",
+    "11111111111111111",
+    "11111111111111111",
+    "11111111111111111",
+    "11111A11111A11111",
+    "11111A11111A11111",
+    "11111A22A11A11111",
+    "_11112AA22A11111_",
+    "__1111222221111__",
+    "___11111111110___",
+    "____111111110____",
+    "_____111110______"
+  ];
+
+  for(let y=0;y<ph;y++){
+    for(let x=0;x<pw;x++){
+      const c = map[y][x] || '_';
+      let col = P.transparent;
+      if(c==='1') col = P.shell;
+      if(c==='2') col = P.yolk;
+      if(c==='A') col = P.zipper;
+      if(c==='_') col = P.transparent;
+      ctx.fillStyle = col;
+      if(col !== P.transparent) ctx.fillRect(x*pixelSize, y*pixelSize, pixelSize, pixelSize);
+    }
+  }
+
+  // small dino eyes/pop - draw a tiny dino head
+  ctx.fillStyle = P.dino;
+  ctx.fillRect(7*pixelSize, 7*pixelSize, pixelSize*2, pixelSize*2);
+  ctx.fillStyle = '#071021';
+  ctx.fillRect(8*pixelSize, 8*pixelSize, pixelSize, pixelSize);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  logoImg.src = dataUrl;
+
+  // download when clicked
+  logoImg.addEventListener('click', ()=> {
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'eggzip-logo.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+    });
+  });
+})();
+
+/* drag and drop handlers */
+addFilesBtn.onclick = ()=> fileInput.click();
+addArchiveBtn.onclick = ()=> archiveInput.click();
+
+fileInput.addEventListener('change', async e => {
+  await addFiles(Array.from(e.target.files));
+  fileInput.value = '';
+});
+archiveInput.addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  staged = [{name:f.name, file:f}];
+  renderList();
+  archiveInput.value = '';
+});
+
+dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.borderColor='rgba(255,255,255,0.12)'; });
+dropArea.addEventListener('dragleave', e => { dropArea.style.borderColor='rgba(255,255,255,0.04)'; });
+dropArea.addEventListener('drop', async e=> {
+  e.preventDefault();
+  const files = Array.from(e.dataTransfer.files || []);
+  await addFiles(files);
+});
+
+async function addFiles(files){
+  for(const f of files){
+    staged.push({name:f.name, file:f});
+    log('Added', f.name, humanSize(f.size));
+  }
+  renderList();
+}
+function renderList(){
+  fileListEl.innerHTML = '';
+  staged.forEach((it,i)=>{
+    const li = document.createElement('li'); li.className='file';
+    li.innerHTML = `<span>${escapeHtml(it.name)}</span><span class="muted">${it.file?humanSize(it.file.size):'0 B'} <button data-i="${i}" class="btn">Remove</button></span>`;
+    fileListEl.appendChild(li);
+  });
+  fileListEl.querySelectorAll('button').forEach(b => b.addEventListener('click', ()=>{
+    const i = +b.getAttribute('data-i');
+    staged.splice(i,1); renderList();
+  }));
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* progress helper */
+function setProgress(p){ progressWrap.style.display = p>0 && p<100 ? 'block' : (p>=100 ? 'block' : 'none'); progressBar.style.width = Math.max(0,Math.min(100,p)) + '%'; }
+
+/* Backend detection and wrapper
+   We attempt to initialize 7z-wasm and libarchive-wasm if loaded by CDN.
+   7z-wasm usage pattern: import SevenZip then await SevenZip() to get module with FS and callMain.
+   libarchive-wasm / libarchivejs usage patterns differ; we attempt to detect common globals
+   and provide adapters. If the concrete API differs for a given release, open console log lines
+   to see what global variable is available and adapt accordingly.
+*/
+let backends = { seven: null, libarchive: null };
+
+async function initBackends(){
+  // 7z-wasm: try to find factory function named SevenZip or default export in global
+  try {
+    const SevenFactory = window.SevenZip || window.Seven || window['7z-wasm'] || window['Seven'] || window['SevenZip'];
+    if(typeof SevenFactory === 'function'){
+      log('Initializing 7z-wasm...');
+      backends.seven = await SevenFactory(); // returns Emscripten module
+      log('7z-wasm ready.');
+    } else if(window.SevenZip && typeof window.SevenZip.default === 'function'){
+      log('Initializing 7z-wasm via default export...');
+      backends.seven = await window.SevenZip.default();
+      log('7z-wasm ready.');
+    } else {
+      // some UMD builds attach factory name SevenZip or SevenZipModule. Try known global names.
+      const maybe = window['SevenZipModule'] || window['SevenZipWasm'] || window['SevenWasm'];
+      if(typeof maybe === 'function'){
+        log('Initializing 7z-wasm via alternative global...');
+        backends.seven = await maybe();
+        log('7z-wasm ready.');
+      } else {
+        log('7z-wasm not detected as global. It may still be available as an ES module or under a different name. See README if you need to host it locally.');
+      }
+    }
+  } catch(err){
+    log('7z-wasm init error:', err && err.message ? err.message : err);
+  }
+
+  // libarchive-wasm detection
+  try {
+    // libarchive-wasm commonly exposes global "LibArchiveWasm" or "libarchive" or "archiveWasm"
+    const la = window.LibArchiveWasm || window.libarchive || window.archiveWasm || window.Archive;
+    if(la && typeof la.extract === 'function'){
+      backends.libarchive = la;
+      log('libarchive-wasm detected via global with extract function.');
+    } else if(window.Archive && typeof window.Archive.open === 'function'){
+      backends.libarchive = window.Archive;
+      log('libarchive-js detected via Archive.open API.');
+    } else {
+      log('libarchive-wasm not detected as a known global. If you included it locally under another name, edit initBackends to use it.');
+    }
+  } catch(err){
+    log('libarchive init error:', err && err.message ? err.message : err);
+  }
+
+  // For debugging, list detected globals of interest
+  log('Backend status: 7z-wasm', !!backends.seven, 'libarchive', !!backends.libarchive, 'fflate', !!window.fflate);
+}
+
+initBackends();
+
+/* Create ZIP using fflate (fast, pure JS) */
+createZipBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No files staged.'); return; }
+  log('Creating ZIP...');
+  setProgress(1);
+  try{
+    // build mapping name => Uint8Array
+    const mapping = {};
+    let i = 0;
+    for(const it of staged){
+      const buf = new Uint8Array(await it.file.arrayBuffer());
+      mapping[it.name] = buf;
+      i++;
+      setProgress(Math.round((i/staged.length) * 40));
+    }
+    const zipBytes = fflate.zipSync(mapping);
+    setProgress(80);
+    const blob = new Blob([zipBytes], {type:'application/zip'});
+    downloadBlob(blob, `eggzip-${timestamp()}.zip`);
+    setProgress(100);
+    log('ZIP created and download initiated.');
+  } catch(err){
+    log('ZIP create error:', err && err.message ? err.message : err);
+  } finally {
+    setTimeout(()=>setProgress(0), 800);
+  }
+});
+
+/* Create 7z using 7z-wasm backend when available */
+create7zBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No files staged.'); return; }
+  if(!backends.seven){ log('7z-wasm not initialized. It must be available for 7z creation.'); return; }
+  log('Creating 7z via 7z-wasm...');
+  setProgress(1);
+  try {
+    // Use Emscripten FS: write files, then callMain to run 7zz a command to create archive.
+    // We write files into the emscripten FS (root) and then call "a" to add them to archive.
+    const seven = backends.seven;
+    const FS = seven.FS;
+    // create temp folder
+    const tmp = '/eggzip_tmp';
+    try{ FS.mkdir(tmp); } catch(e){}
+    // write each staged file
+    for(let i=0;i<staged.length;i++){
+      const it = staged[i];
+      const name = it.name.replace(/[^a-z0-9_.-]/ig, '_');
+      const path = tmp + '/' + name;
+      const bytes = new Uint8Array(await it.file.arrayBuffer());
+      try{ FS.writeFile(path, bytes, {encoding:'binary'}); } catch(e){ FS.createDataFile('/', name, bytes, true, true); }
+      setProgress(Math.round((i/staged.length)*40));
+    }
+    // build args: a archive.7z tmp/*
+    const outName = `/eggzip-${timestamp()}.7z`;
+    // callMain expects array of args similar to CLI
+    seven.callMain(['a', outName, tmp + '/*']);
+    // read output bytes
+    const outBytes = FS.readFile(outName);
+    const blob = new Blob([outBytes], {type:'application/x-7z-compressed'});
+    downloadBlob(blob, outName.replace(/^\//,''));
+    setProgress(100);
+    log('7z archive created and download started. Note: heavy compression may take time on mobile.');
+  } catch(err){
+    log('7z create error:', err && err.message ? err.message : err);
+  } finally {
+    setTimeout(()=>setProgress(0), 900);
+  }
+});
+
+/* Extract archive - tries backends in order based on toggles */
+extractBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No archive staged. Add an archive to extract.'); return; }
+  const it = staged[0];
+  log('Attempting to extract', it.name);
+  setProgress(1);
+
+  // If user wants 7z and backend is available and recognizes file, try it
+  if(use7zToggle.checked && backends.seven){
+    try {
+      log('Trying extraction with 7z-wasm backend...');
+      await extractWith7z(it.file);
+      setProgress(100);
+      log('Extraction with 7z-wasm complete.');
+      setTimeout(()=>setProgress(0), 800);
+      return;
+    } catch(err){
+      log('7z-wasm extraction failed, falling back. Error:', err && err.message ? err.message : err);
+    }
+  }
+
+  // Next fallback: libarchive
+  if(useLibToggle.checked && backends.libarchive){
+    try {
+      log('Trying extraction with libarchive backend...');
+      await extractWithLibarchive(it.file);
+      setProgress(100);
+      log('libarchive extraction complete.');
+      setTimeout(()=>setProgress(0), 800);
+      return;
+    } catch(err){
+      log('libarchive extraction failed, falling back. Error:', err && err.message ? err.message : err);
+    }
+  }
+
+  // Finally, if it is a zip, use fflate natively
+  if(it.name.toLowerCase().endsWith('.zip')){
+    try {
+      const buf = new Uint8Array(await it.file.arrayBuffer());
+      const entries = fflate.unzipSync(buf);
+      let i=0;
+      for(const entryName in entries){
+        const data = entries[entryName];
+        const blob = new Blob([data], {type:'application/octet-stream'});
+        downloadBlob(blob, entryName);
+        i++;
+        setProgress(Math.round((i/Object.keys(entries).length)*100));
+        log('Extracted', entryName);
+      }
+      log('ZIP extraction finished.');
+      setTimeout(()=>setProgress(0), 800);
+      return;
+    } catch(err){
+      log('fflate unzip error:', err && err.message ? err.message : err);
+    }
+  }
+
+  log('No suitable backend could extract this archive. See README section in page for how to add local WASM files and adjust backend detection.');
+  setTimeout(()=>setProgress(0), 800);
+});
+
+/* Archive inspect - list entries using whichever backend is available */
+inspectBtn.addEventListener('click', async ()=>{
+  if(staged.length===0){ log('No archive staged.'); return; }
+  const it = staged[0];
+  log('Inspecting', it.name);
+  try{
+    if(use7zToggle.checked && backends.seven){
+      log('Listing via 7z-wasm...');
+      // call 'l' list command
+      const seven = backends.seven;
+      const FS = seven.FS;
+      // write file into FS
+      const fname = '/inspect.' + it.name.replace(/[^a-z0-9_.-]/ig,'_');
+      FS.writeFile(fname, new Uint8Array(await it.file.arrayBuffer()));
+      // callMain ['l', fname]
+      seven.callMain(['l', fname]);
+      // 7z outputs to stdout in Emscripten. We do not capture it here. See README for advanced usage.
+      log('7z-wasm list command run. Check console for module output if present.');
+      return;
+    }
+    if(useLibToggle.checked && backends.libarchive){
+      log('Listing via libarchive backend...');
+      await inspectWithLibarchive(it.file);
+      return;
+    }
+    if(it.name.toLowerCase().endsWith('.zip')){
+      const buf = new Uint8Array(await it.file.arrayBuffer());
+      const entries = fflate.unzipSync(buf);
+      log('ZIP entries:');
+      for(const k in entries) log(' -', k);
+      return;
+    }
+    log('No backend available to inspect this archive.');
+  }catch(err){
+    log('Inspect error:', err && err.message ? err.message : err);
+  }
+});
+
+/* extractWith7z - uses backends.seven Emscripten module
+   NOTE: The 7z-wasm module is an Emscripten module and exposes FS and callMain.
+   Behavior: write archive to FS, callMain(["x", archivePath, "-o", outputPath]) then read files back out.
+   On the web we read files from FS and offer them for download.
+*/
+async function extractWith7z(file){
+  if(!backends.seven) throw new Error('7z backend not ready');
+  const seven = backends.seven;
+  const FS = seven.FS;
+  const fname = '/e_in.' + file.name.replace(/[^a-z0-9_.-]/ig,'_');
+  const outDir = '/out_egg';
+  try{ FS.mkdir(outDir); } catch(e){}
+  FS.writeFile(fname, new Uint8Array(await file.arrayBuffer()));
+  // callMain to extract to outDir, using x command with -o switch to specify output
+  // callMain expects similar to CLI. Some builds require different args. Try common patterns.
+  try {
+    seven.callMain(['x', fname, '-o' + outDir, '-y']);
+  } catch(e1){
+    // fallback to separate arg form
+    try {
+      seven.callMain(['x', fname, '-o', outDir, '-y']);
+    } catch(e2){
+      log('7z-wasm extraction callMain variations failed. See console for errors.');
+      throw e2;
+    }
+  }
+  // list files inside outDir. Emscripten FS may not provide full recursion method; we try simple walk.
+  function walk(path, acc){
+    try{
+      const items = FS.readdir(path);
+      for(const name of items){
+        if(name==='.' || name==='..') continue;
+        const p = path + '/' + name;
+        const stat = FS.stat(p);
+        if(stat && (stat.mode & 0o170000) === 0o040000){ // directory
+          walk(p, acc);
+        } else {
+          acc.push(p);
+        }
+      }
+    }catch(e){}
+  }
+  const files = [];
+  walk(outDir, files);
+  if(files.length===0) log('No files found inside extracted folder. 7z-wasm may have placed files elsewhere or extraction failed.');
+  for(let i=0;i<files.length;i++){
+    const p = files[i];
+    try{
+      const bytes = FS.readFile(p);
+      const b = new Blob([bytes], {type:'application/octet-stream'});
+      // offer download with path after outDir/
+      const saveName = p.startsWith(outDir + '/') ? p.slice(outDir.length + 1) : p.replace(/^\//,'');
+      downloadBlob(b, saveName);
+      setProgress(Math.round(((i+1)/files.length) * 100));
+      log('Extracted', saveName);
+    }catch(e){
+      log('Failed to read file', p, e && e.message ? e.message : e);
+    }
+  }
+}
+
+/* extractWithLibarchive - use libarchivejs or libarchive-wasm style APIs
+   There are multiple libarchive builds. This function attempts to support the common ones:
+   - libarchivejs with Archive.open(file) and extractFiles(callback)
+   - archive-wasm with extract(arrayBuffer) returning entries
+*/
+async function extractWithLibarchive(file){
+  const la = backends.libarchive;
+  if(!la) throw new Error('libarchive backend not ready');
+  // Try libarchivejs style: Archive.open(file)
+  if(typeof la.open === 'function'){
+    log('Using libarchivejs style API.');
+    const archive = await la.open(file);
+    // archive.extractFiles accepts callback(entry)
+    if(typeof archive.extractFiles === 'function'){
+      await archive.extractFiles(async (entry)=>{
+        // entry.file is a File, can be downloaded directly
+        if(entry.file){
+          downloadBlob(entry.file, entry.name || entry.filename || ('file-' + Date.now()));
+          log('Extracted', entry.name || entry.filename);
+        } else {
+          // some builds provide arrayBuffer
+          if(entry.arrayBuffer){
+            const buf = await entry.arrayBuffer();
+            downloadBlob(new Blob([buf]), entry.name || 'file');
+            log('Extracted', entry.name || 'file');
+          }
+        }
+      });
+      return;
+    } else {
+      log('libarchive open succeeded but extractFiles API not found. See libarchive docs.');
+      throw new Error('Unsupported libarchivejs API version');
+    }
+  }
+
+  // Try archive-wasm style: extract(arrayBuffer) -> returns entries
+  if(typeof la.extract === 'function'){
+    log('Using archive-wasm extract API');
+    const ab = await file.arrayBuffer();
+    const entries = await la.extract(new Uint8Array(ab));
+    for(let i=0;i<entries.length;i++){
+      const e = entries[i];
+      const blob = new Blob([e.data], {type:'application/octet-stream'});
+      downloadBlob(blob, e.name || ('file-' + i));
+      log('Extracted', e.name || ('file-' + i));
+      setProgress(Math.round(((i+1)/entries.length)*100));
+    }
+    return;
+  }
+
+  throw new Error('No compatible libarchive API found on backend object');
+}
+
+/* inspectWithLibarchive: try to list entries */
+async function inspectWithLibarchive(file){
+  const la = backends.libarchive;
+  if(!la) throw new Error('libarchive backend not ready');
+  if(typeof la.open === 'function'){
+    const archive = await la.open(file);
+    const filesObj = await archive.getFilesObject();
+    log('Archive listing:');
+    for(const name in filesObj) log(' -', name);
+    return;
+  }
+  if(typeof la.inspect === 'function'){
+    const ab = await file.arrayBuffer();
+    const entries = await la.inspect(new Uint8Array(ab));
+    log('Archive listing:');
+    entries.forEach(e=> log(' -', e.name));
+    return;
+  }
+  log('No inspect API found on libarchive backend. Try extraction instead.');
+}
+
+/* Utility: download blob */
+function downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+function timestamp(){ return new Date().toISOString().replace(/[:.]/g,'-'); }
+
+/* Helper to show available backend info to user */
+setTimeout(()=> {
+  log('Detected libs: fflate', !!window.fflate, '7z-wasm', !!backends.seven, 'libarchive', !!backends.libarchive);
+  log('If a backend is not detected, you can host its JS and wasm files locally in the repo and edit the script tags at top of this file.');
+}, 800);
+
+/* Small README embedded in page: quick deployment steps */
+log('\\nREADME quick notes:');
+log('1) This file loads fflate, 7z-wasm and libarchive-wasm from jsDelivr. For offline use, download the UMD JS and .wasm files and place them in your repo, then update the script src lines at the top.');
+log('2) GitHub Pages serves .wasm files fine. Commit vendor files and use relative paths for full offline capability.');
+log('3) If a backend does not initialize, open devtools console to inspect global names. Edit initBackends() to match the global factory name of the build you used.');
+log('4) RAR creation is not supported due to licensing. Extraction support depends on backend builds.');
+
+</script>
+</body>
+</html>
