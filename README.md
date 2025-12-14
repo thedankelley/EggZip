@@ -1,7 +1,7 @@
 # EggZip
 Experimental Archive Utility
 
-**Tagline:** Get to the yolk inside!  
+Get to the yolk inside!  
 
 EggZip is a fully client-side archive utility that runs entirely in the browser. It supports creating and extracting archives like ZIP and 7z, with password protection, progress bars, and offline caching. It works on desktop and mobile browsers.
 
