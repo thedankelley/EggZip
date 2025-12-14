@@ -39,19 +39,6 @@ EggZip is a fully client-side archive utility that runs entirely in the browser.
 
 ---
 
-## Deployment on GitHub Pages
-
-1. Create a new GitHub repository.
-2. Upload `index.html`, `README.md`, and `LICENSE.txt`.
-3. Go to **Settings → Pages**.
-4. Select the branch and root folder for GitHub Pages.
-5. Click **Save**.
-6. Open the generated GitHub Pages URL to use EggZip.
-
-For best offline experience, open the page once and press **Cache vendor files**.
-
----
-
 ## Supported Browsers
 
 - Chrome, Edge, Firefox, Safari (desktop and mobile)
