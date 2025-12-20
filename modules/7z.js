@@ -1,9 +1,7 @@
-import "../vendor/7z/7zz.umd.js";
+// Uses global `_7z` from 7zz.umd.js
 
-// Set WASM path
 _7z.setWasmPath("vendor/7z/7zz.wasm");
-
-let _seven; // store initialized instance
+let _seven;
 
 async function init7z() {
   if (!_seven) _seven = await _7z();
@@ -11,7 +9,7 @@ async function init7z() {
 }
 
 export async function create7z(files, onProgress) {
-  const archive = await init7z(); // ensure WASM is loaded
+  const archive = await init7z();
 
   for (let i = 0; i < files.length; i++) {
     const arrayBuffer = await files[i].arrayBuffer();
