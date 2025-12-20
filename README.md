@@ -33,7 +33,7 @@
 
 EggZip © 2025
 
-Released under the MIT License. Commercial use is allowed, including bundling into paid apps (e.g., App Store). Ensure that all dependencies’ licenses are respected:
+Released under the MIT License. Ensure that all dependencies’ licenses are respected:
 
 - [fflate](https://github.com/101arrowz/fflate) (MIT)
 - [7z-wasm](https://github.com/use-strict/7z-wasm) (MIT)
