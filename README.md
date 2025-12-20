@@ -20,25 +20,6 @@
    - Service worker automatically caches core files and vendors.
    - First visit should be online for caching to complete.
 
----
-
-## Deployment on GitHub Pages
-
-1. Create a new GitHub repository (e.g., `EggZip`).
-2. Upload the following folders/files:
-   - `index.html`
-   - `manifest.json`
-   - `service-worker.js`
-   - `ui/`, `modules/`, `vendor/`, `icons/`
-3. Go to **Settings → Pages**.
-4. Select your branch (e.g., `main`) and `/ (root)` as the folder.
-5. Click **Save**.
-6. Open the generated GitHub Pages URL to access EggZip.
-7. Test compression/extraction to ensure 7z and libarchive are working.
-
-> ⚠️ Ensure that `vendor/7z/7z-wasm.wasm` and `vendor/libarchive/libarchive-wasm.wasm` are included in the repo, otherwise 7z and other archive extraction will fail.
-
----
 
 ## Supported Browsers
 
