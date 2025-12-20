@@ -1,26 +1,3 @@
-import { createZip, extractZip } from "../modules/zip.js";
-import { create7z } from "../modules/7z.js";
-import { extractArchive } from "../modules/libarchive.js";
-
-const fileInput = document.getElementById("fileInput");
-const zipBtn = document.getElementById("zipBtn");
-const sevenzBtn = document.getElementById("sevenzBtn");
-const extractBtn = document.getElementById("extractBtn");
-const progressBar = document.getElementById("progressBar");
-const progressText = document.getElementById("progressText");
-const output = document.getElementById("output");
-
-let selectedFiles = [];
-
-fileInput.addEventListener("change", (e) => {
-  selectedFiles = Array.from(e.target.files);
-});
-
-function updateProgress(percent) {
-  progressBar.value = percent;
-  progressText.textContent = percent + "%";
-}
-
 zipBtn.addEventListener("click", async () => {
   if (!selectedFiles.length) return alert("Select files first");
   updateProgress(0);
@@ -30,7 +7,8 @@ zipBtn.addEventListener("click", async () => {
     output.innerHTML = `<a href="${url}" download="archive.zip">Download ZIP</a>`;
     updateProgress(100);
   } catch (e) {
-    alert("ZIP creation failed: " + e.message);
+    console.error(e);
+    alert("ZIP creation failed");
   }
 });
 
@@ -43,7 +21,8 @@ sevenzBtn.addEventListener("click", async () => {
     output.innerHTML = `<a href="${url}" download="archive.7z">Download 7z</a>`;
     updateProgress(100);
   } catch (e) {
-    alert("7z creation failed: " + e.message);
+    console.error(e);
+    alert("7z creation failed");
   }
 });
 
@@ -66,13 +45,7 @@ extractBtn.addEventListener("click", async () => {
     });
     updateProgress(100);
   } catch (e) {
-    alert("Extraction failed: " + e.message);
+    console.error(e);
+    alert("Extraction failed");
   }
 });
-
-// Register service worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js").then(() => {
-    console.log("Service worker registered");
-  });
-}
