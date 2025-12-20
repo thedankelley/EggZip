@@ -1,8 +1,7 @@
-import "../vendor/libarchive/libarchive-wasm.js";
+// Uses global `LibArchive` from libarchive-wasm.js
 
 LibArchive.setWasmPath("vendor/libarchive/libarchive-wasm.wasm");
-
-let _lib; // store initialized instance
+let _lib;
 
 async function initLibArchive() {
   if (!_lib) _lib = await LibArchive();
@@ -10,7 +9,7 @@ async function initLibArchive() {
 }
 
 export async function extractArchive(file, onProgress) {
-  const lib = await initLibArchive(); // ensure WASM is ready
+  const lib = await initLibArchive();
   const buffer = await file.arrayBuffer();
   const archive = await lib.open(new Uint8Array(buffer));
   const results = [];
@@ -20,7 +19,7 @@ export async function extractArchive(file, onProgress) {
     if (entry.fileData) {
       results.push({ name: entry.name, blob: new Blob([entry.fileData]) });
       count++;
-      if (onProgress) onProgress(Math.round((count / 10) * 100)); // approximate
+      if (onProgress) onProgress(Math.round((count / 10) * 100));
     }
   }
 
